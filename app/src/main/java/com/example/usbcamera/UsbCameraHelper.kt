@@ -6,6 +6,7 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.util.Log
 import android.view.Surface
+import android.view.SurfaceView
 import com.jiangdg.ausbc.MultiCameraClient
 import com.jiangdg.ausbc.callback.ICameraStateCallBack
 import com.jiangdg.ausbc.callback.IDeviceConnectCallBack
@@ -16,7 +17,7 @@ import com.jiangdg.usb.USBMonitor.UsbControlBlock
 
 
 class UsbCameraHelper(private val context: Context) {
-    private val Tag = "UsbCameraHelper"
+    private val TAG = "UsbCameraHelper"
 
     private val trySizes = listOf( 1280 to 720, 640 to 480)
 
@@ -28,12 +29,10 @@ class UsbCameraHelper(private val context: Context) {
         multiCameraClient!!.register()
     }
 
-    fun startPreview(surface: Surface) {
+    fun startPreview(surfaceView: SurfaceView) {
         for ((w, h) in trySizes) {
             try {
-                usbCamera?.openCamera(surface, getCameraRequest(w, h))
-                setICameraStateCallBack()
-                usbCamera?.setRenderSize(w, h)
+                usbCamera?.openCamera(surfaceView, getCameraRequest(w, h))
                 break
             } catch (e: Exception) {
                 // 실패시 다음 사이즈
@@ -51,7 +50,7 @@ class UsbCameraHelper(private val context: Context) {
     private fun createMultiCameraClient () : MultiCameraClient {
         return MultiCameraClient(context, object : IDeviceConnectCallBack {
             override fun onAttachDev(device: UsbDevice?) {
-                Log.i(Tag, "Camera ${device?.productName} attached")
+                Log.d(TAG, "Camera ${device?.productName} attached")
                 if (device != null) {
                     multiCameraClient?.requestPermission(device)
                 }
@@ -62,20 +61,21 @@ class UsbCameraHelper(private val context: Context) {
                     usbCamera = CameraUVC(context, device!!)
                     // ControlBlock 설정
                     usbCamera?.setUsbControlBlock(ctrlBlock)
+                    setICameraStateCallBack()
 
-                    Log.i(Tag, "Camera ${device.productName} connected")
+                    Log.d(TAG, "Camera ${device.productName} connected")
                 } else {
-                    Log.e(Tag, "Camera ${device?.productName} connect failed")
+                    Log.e(TAG, "Camera ${device?.productName} connect failed")
                 }
             }
             override fun onDisConnectDec(device: UsbDevice?, ctrlBlock: UsbControlBlock?) {
-                Log.i(Tag, "Camera ${device?.productName} disconnected")
+                Log.d(TAG, "Camera ${device?.productName} disconnected")
             }
             override fun onCancelDev(device: UsbDevice?) {
-                Log.i(Tag, "Camera ${device?.productName} cancel dev")
+                Log.d(TAG, "Camera ${device?.productName} cancel dev")
             }
             override fun onDetachDec(device: UsbDevice?){
-                Log.i(Tag, "Camera ${device?.productName} detached")
+                Log.d(TAG, "Camera ${device?.productName} detached")
             }
         })
     }
@@ -91,13 +91,12 @@ class UsbCameraHelper(private val context: Context) {
 
                 when (code) {
                     ICameraStateCallBack.State.OPENED -> {
-                        Log.i(Tag, "Camera $deviceName opened")
-                        usbCamera?.captureStreamStart()
+                        Log.i(TAG, "Camera $deviceName opened")
                     }
                     ICameraStateCallBack.State.CLOSED ->
-                        Log.i(Tag, "Camera $deviceName closed")
+                        Log.i(TAG, "Camera $deviceName closed")
                     ICameraStateCallBack.State.ERROR ->
-                        Log.e(Tag, "Camera $deviceName error : $msg")
+                        Log.e(TAG, "Camera $deviceName error : $msg")
                 }
             }
         })
@@ -112,7 +111,7 @@ class UsbCameraHelper(private val context: Context) {
             .setAudioSource(CameraRequest.AudioSource.NONE) // set audio source
             .setAspectRatioShow(true) // aspect render,default is true
             .setCaptureRawImage(false) // capture raw image picture when opengl mode
-            .setRawPreviewData(true)  // preview raw image when opengl mode
+            .setRawPreviewData(false)  // preview raw image when opengl mode
             .create()
     }
 }
